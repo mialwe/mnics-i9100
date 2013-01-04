@@ -35,6 +35,9 @@ on boot
     hostname localhost
     domainname localdomain
 
+# Device Encryption by Security R&D Group. 
+    setprop ro.crypto.keyfile.userdata /efs/metadata  
+        
     class_start default
 
 service ueventd /sbin/ueventd
