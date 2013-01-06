@@ -370,7 +370,9 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
                    -Wno-uninitialized \
                    -Wno-enum-compare \
-		   -fno-delete-null-pointer-checks
+		   -fno-delete-null-pointer-checks \
+                   -mtune=cortex-a9 -mfpu=neon -march=armv7-a -funswitch-loops -mfloat-abi=softfp \
+                   -funsafe-math-optimizations -funroll-loops -mvectorize-with-neon-quad
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
