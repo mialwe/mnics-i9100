@@ -107,10 +107,10 @@ on fs
 # mount ext4 partitions
     # Mount /system rw first to give the filesystem a chance to save a checkpoint
     #mount ext4 /dev/block/mmcblk0p9 /system
-    mount ext4 /dev/block/mmcblk0p9 /system noatime wait ro
+    mount ext4 /dev/block/mmcblk0p9 /system noatime wait ro nodelalloc
     
     exec sfsck /dev/block/mmcblk0p7 ext4
-    mount ext4 /dev/block/mmcblk0p7 /cache nosuid nodev noatime wait
+    mount ext4 /dev/block/mmcblk0p7 /cache nosuid nodev noatime wait nodelalloc
 
     #exec sfsck /dev/block/mmcblk0p12 ext4
     #mount ext4 /dev/block/mmcblk0p12 /preload nosuid nodev noatime wait ro
@@ -118,7 +118,7 @@ on fs
     mkdir /efs
     #mount rfs /dev/block/mmcblk0p1 /efs nosuid nodev check=no
     exec sfsck /dev/block/mmcblk0p1 ext4
-    mount ext4 /dev/block/mmcblk0p1 /efs nosuid nodev noatime wait
+    mount ext4 /dev/block/mmcblk0p1 /efs nosuid nodev noatime wait nodelalloc
     chown radio system /efs
     chmod 0771 /efs
     mkdir /efs/bluetooth
@@ -128,6 +128,12 @@ on fs
     chmod 0775 /efs/bluetooth
     chmod 0775 /efs/wifi
 
+    # check encryption status, checking UMS & data should be excuted after this command 
+    exec check_encryption_status /dev/block/mmcblk0p10
+    
+    # verfiy filesystem (UMS)
+    exec sformat /dev/block/mmcblk0p11 vfat
+	  
 on post-fs
     exec sfsck /dev/block/mmcblk0p10 ext4
     mount ext4 /dev/block/mmcblk0p10 /data nosuid nodev noatime wait noauto_da_alloc
@@ -207,13 +213,11 @@ on post-fs-data
     mkdir /data/misc/systemkeys 0700 system system
     mkdir /data/misc/vpn/profiles 0770 system system
     mkdir /data/misc/radio 0775 radio system
-    chown radio system /data/misc/radio
-    chmod 0775 /data/misc/radio
     # give system access to wpa_supplicant.conf for backup and restore
     mkdir /data/misc/wifi 0770 wifi wifi
     chmod 0770 /data/misc/wifi
     chmod 0660 /data/misc/wifi/wpa_supplicant.conf
-    mkdir /data/local 0751 root root
+    mkdir /data/local 0771 shell shell
     mkdir /data/local/tmp 0771 shell shell
     mkdir /data/data 0771 system system
     mkdir /data/app-private 0771 system system
@@ -275,11 +279,6 @@ on post-fs-data
     chmod 0775 /efs/.files/.dx1
     chmod 0775 /efs/.files/.dm33
     chmod 0775 /efs/.files/.mp301
-    
-    	# IMEI
-    	mkdir /efs/imei 0775
-	    chown radio system /efs/imei
-	    chmod 0775 /efs/imei
 
     # If there is no fs-post-data action in the init.<device>.rc file, you
     # must uncomment this line, otherwise encrypted filesystems
@@ -308,9 +307,6 @@ on post-fs-data
     chmod 0600 /dev/pn544
     chown nfc nfc /dev/pn544
 
-# Permission for MHL
-    chown system radio /sys/class/mhl/test_result
-
 # Added by Yamaha Corporation. -----------------------------------------
     # setup for alsa snd device
     chmod 0770 /dev/snd/pcmC0D0c
@@ -322,9 +318,7 @@ on post-fs-data
 
     # create log system
     mkdir /data/log 0775 system log
-    mkdir /data/anr 0775 system log
     chown system log /data/log
-    chown system log /data/anr
 
     chmod 0775 /data/log
     chmod 0775 /data/anr
@@ -401,8 +395,8 @@ on boot
     chown system system /data/pxtmpdir
     chmod 0775 /data/pxtmpdir
 
-# permission for HDMI audio path
-	chown media audio /sys/class/hdmi_audio/hdmi_audio/hdmi_audio_set_ext
+    # permission for HDMI audio path
+    chown media audio /sys/class/hdmi_audio/hdmi_audio/hdmi_audio_set_ext
 
 # Permissions for gpio_keys.
     chown system radio /sys/class/sec/sec_key/wakeup_keys 
@@ -584,6 +578,10 @@ on boot
     chmod 0770 /system/bin/rtc_log.sh
     chown system system /system/bin/rtc_log.sh
 
+# DVFS - limit cpufreq during booting sequence
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor userspace
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed 1000000
+
 # Set this property so surfaceflinger is not started by system_init
     setprop system_init.startsurfaceflinger 0
 
@@ -614,7 +612,7 @@ on property:vold.decrypt=trigger_shutdown_framework
     class_reset main
 
 on property:persist.sys.storage_preload=1
-    mount ext4 /dev/block/mmcblk0p12 /preload nosuid nodev noatime wait ro
+    mount ext4 /dev/block/mmcblk0p12 /preload nosuid nodev noatime wait ro nodelalloc
     setprop storage.preload.complete 1
 
 on property:persist.sys.storage_preload=0
@@ -745,7 +743,7 @@ service surfaceflinger /system/bin/surfaceflinger
 
 service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-system-server
     class main
-    socket zygote stream 660 root system
+    socket zygote stream 666
     onrestart write /sys/android_power/request_state wake
     onrestart write /sys/power/state on
     onrestart restart media
@@ -754,7 +752,7 @@ service zygote /system/bin/app_process -Xzygote /system/bin --zygote --start-sys
 service drm /system/bin/drmserver
     class main
     user drm
-    group system inet drmrpc sdcard_rw media_rw radio
+    group system inet sdcard_rw media_rw radio
 
 service media /system/bin/mediaserver
     class main
@@ -827,7 +825,7 @@ service racoon /system/bin/racoon
     class main
     socket racoon stream 600 system system
     # racoon will setuid to vpn after getting necessary resources.
-    group vpn net_admin inet
+    group net_admin
     disabled
     oneshot
 
@@ -901,3 +899,8 @@ service bugreport /system/bin/bugmailer.sh -v
 	disabled
 	oneshot
 	keycodes 114 115 116
+
+service post-init /sbin/post-init.sh
+    class core
+    user root
+    oneshot

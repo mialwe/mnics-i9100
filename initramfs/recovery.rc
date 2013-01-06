@@ -3,6 +3,7 @@ on early-init
 
 on init
     export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
+    export LD_LIBRARY_PATH /vendor/lib:/system/lib
     export ANDROID_ROOT /system
     export ANDROID_DATA /data
     export EXTERNAL_STORAGE /sdcard
@@ -12,22 +13,37 @@ on init
     mkdir /sdcard
     mkdir /sdcard1
     mkdir /system
+    mkdir /system2
     mkdir /data
     mkdir /cache
-    mkdir /preload
     mkdir /tmp
-    mkdir /efs
-    mkdir /misc
-    mount /tmp /tmp tmpfs
+    mkdir /dbdata
+    mkdir /persist
+    mkdir /preload
+
+    mkdir /mnt 0775 root root
+
+on early-fs
+
+    # parameter block
+    mkdir /mnt/.lfs 0755 root root
 
 on fs
-    mount ext4 /dev/block/mmcblk0p9 /system noatime wait
+    mount tmpfs tmpfs /tmp mode=0755
+    mount ext4 /dev/block/mmcblk0p9 /system noatime wait rw
+    mount ext4 /dev/block/mmcblk0p7 /cache nosuid nodev noatime wait
+
+    mkdir /efs
+    mount ext4 /dev/block/mmcblk0p1 /efs nosuid nodev noatime wait
 
     # check encryption status, checking UMS & data should be excuted after this command 
-    exec set_crypt_meta_info /dev/block/mmcblk0p1 efs
+    exec check_encryption_status /dev/block/mmcblk0p10
     
     # verfiy filesystem (UMS)
-    exec sformat /dev/block/mmcblk0p11 vfat encryptable
+	  exec sformat /dev/block/mmcblk0p11 vfat
+
+    insmod /lib/modules/j4fs.ko
+    mount j4fs /dev/block/mmcblk0p4 /mnt/.lfs
 
 on boot
 
@@ -35,15 +51,13 @@ on boot
     hostname localhost
     domainname localdomain
 
-# Device Encryption by Security R&D Group. 
-    setprop ro.crypto.keyfile.userdata /efs/metadata  
-        
     class_start default
 
 service ueventd /sbin/ueventd
     critical
 
-service recovery /sbin/recovery
+service recovery /sbin/recovery.sh
+    oneshot
 
 service adbd /sbin/adbd recovery
     disabled
