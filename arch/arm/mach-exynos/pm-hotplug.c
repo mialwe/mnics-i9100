@@ -42,7 +42,7 @@
 #define CPUMON 1
 
 #define CHECK_DELAY	(.5*HZ)
-#define TRANS_LOAD_L	25
+#define TRANS_LOAD_L	20
 #define TRANS_LOAD_H	(TRANS_LOAD_L*3)
 #define TRANS_LOAD_L_SCREEN_OFF 35
 #define TRANS_LOAD_H_SCREEN_OFF 90
