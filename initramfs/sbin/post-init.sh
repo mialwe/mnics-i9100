@@ -44,10 +44,10 @@ echo 128 > /sys/block/mmcblk1/bdi/read_ahead_kb
 
 echo "$(date) setting vm tweaks..."
 echo "0" > /proc/sys/vm/swappiness                   # Not really needed as no /swap used...
-echo "1500" > /proc/sys/vm/dirty_writeback_centisecs # Flush after 15 sec. (o:500)
-echo "1500" > /proc/sys/vm/dirty_expire_centisecs    # Pages expire after 15 sec. (o:200)
-echo "10" > /proc/sys/vm/dirty_background_ratio      # flush pages later (default 5% active mem)
-echo "20" > /proc/sys/vm/dirty_ratio
+echo "2000" > /proc/sys/vm/dirty_writeback_centisecs # Flush after 15 sec. (o:500)
+echo "2000" > /proc/sys/vm/dirty_expire_centisecs    # Pages expire after 15 sec. (o:200)
+echo "40" > /proc/sys/vm/dirty_background_ratio      # flush pages later (default 5% active mem)
+echo "80" > /proc/sys/vm/dirty_ratio
 
 # rp_filter must be reset to 0 if TUN module is used (issues)
 echo "$(date) setting IPV4 sec tweaks..."
@@ -60,6 +60,7 @@ echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
 
 echo "$(date) setting setprop tweaks..."
 setprop wifi.supplicant_scan_interval 180
+setprop persist.sys.use_dithering 1
 
 echo "$(date) setting scheduler/kernel tweaks..."
 echo 2000000 > /proc/sys/kernel/sched_latency_ns
